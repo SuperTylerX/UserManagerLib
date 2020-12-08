@@ -21,7 +21,7 @@ public class UserManagerImp implements UserManager {
     private ArrayList<Group> groupList;
     private String CONFIG_FILE;
 
-    public UserManagerImp(String Config_file) {
+    public UserManagerImp(String Config_file) throws Exception  {
         this.userList = new ArrayList<>();
         this.groupList = new ArrayList<>();
         this.CONFIG_FILE = Config_file;
@@ -29,7 +29,8 @@ public class UserManagerImp implements UserManager {
             this.loadUserListAndGroup();
         } catch (Exception e) {
             e.printStackTrace();
-            System.exit(-1);
+//            System.exit(-1);
+            throw new IllegalArgumentException();
         }
     }
 
@@ -45,15 +46,18 @@ public class UserManagerImp implements UserManager {
         }
 
         JSONArray userlist = (JSONArray) jsonObject.get("userList");
-        for (Object o : userlist) {
-            Map user = (Map) o;
-            String username = (String) user.get("userName");
-            String password = (String) user.get("userPassword");
-            String email = (String) user.get("userEmail");
-            long userId = (long) user.get("userId");
-            long userGroup = (long) user.get("userGroup");
-            userList.add(new User(userId, username, email, password, userGroup));
-        }
+
+            for (Object o : userlist) {
+                Map user = (Map) o;
+                String username = (String) user.get("userName");
+                String password = (String) user.get("userPassword");
+                String email = (String) user.get("userEmail");
+                long userId = (long) user.get("userId");
+                long userGroup = (long) user.get("userGroup");
+                userList.add(new User(userId, username, email, password, userGroup));
+            }
+
+
 
         JSONArray grouplist = (JSONArray) jsonObject.get("groupList");
         for (Object o : grouplist) {
@@ -65,8 +69,8 @@ public class UserManagerImp implements UserManager {
         }
 
         // check non-existing group
-        boolean valid = false;
         for (Group g : this.groupList) {
+            boolean valid = false;
             for (Group g2 : this.groupList) {
                 if (g.getGroupParent() == g2.getGroupId() || g.getGroupParent() == 0) {
                     valid = true;
@@ -76,9 +80,21 @@ public class UserManagerImp implements UserManager {
             if (!valid) {
                 throw new Exception("None Parent Group Detected!");
             }
-
         }
 
+        // check undefined group
+        for (User u: this.userList){
+            boolean valid = false;
+            for(Group g: this.groupList){
+                if(u.getUserGroup() == g.getGroupId()){
+                    valid = true;
+                    break;
+                }
+            }
+            if(!valid){
+                throw new Exception("undefined group!");
+            }
+        }
     }
 
     public User authUser(String username, String password) {
